@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mastermind</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      background: #f0f0f0;
+    }
+    .board {
+      max-width: 400px;
+      width: 100%;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .guess, .feedback {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .color, .feedback-dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid #ccc;
+    }
+    .color-select {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1rem 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .color-choice {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid #444;
+      cursor: pointer;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    #message {
+      margin: 1rem 0;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mastermind</h1>
+  <div class="color-select" id="colorSelect"></div>
+  <div class="row" id="currentGuess"></div>
+  <button onclick="submitGuess()">Valider</button>
+  <div id="message"></div>
+  <div class="board" id="board"></div>
+
+  <script>
+    const COLORS = ["red", "blue", "green", "yellow", "purple", "orange"];
+    let secret = [];
+    let current = [];
+    let history = [];
+
+    function generateSecret() {
+      while (secret.length < 4) {
+        secret.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
+      }
+    }
+
+    function renderColorOptions() {
+      const container = document.getElementById("colorSelect");
+      COLORS.forEach(color => {
+        const el = document.createElement("div");
+        el.className = "color-choice";
+        el.style.background = color;
+        el.onclick = () => addColor(color);
+        container.appendChild(el);
+      });
+    }
+
+    function renderCurrentGuess() {
+      const guessDiv = document.getElementById("currentGuess");
+      guessDiv.innerHTML = "";
+      current.forEach((color, i) => {
+        const el = document.createElement("div");
+        el.className = "color";
+        el.style.background = color;
+        el.onclick = () => removeColor(i);
+        guessDiv.appendChild(el);
+      });
+    }
+
+    function addColor(color) {
+      if (current.length < 4) {
+        current.push(color);
+        renderCurrentGuess();
+      }
+    }
+
+    function removeColor(index) {
+      current.splice(index, 1);
+      renderCurrentGuess();
+    }
+
+    function feedback(guess) {
+      let exact = 0;
+      let colorOnly = 0;
+      const tempSecret = [...secret];
+      const tempGuess = [...guess];
+
+      for (let i = 0; i < 4; i++) {
+        if (guess[i] === secret[i]) {
+          exact++;
+          tempSecret[i] = null;
+          tempGuess[i] = null;
+        }
+      }
+
+      tempGuess.forEach((color, i) => {
+        if (color && tempSecret.includes(color)) {
+          colorOnly++;
+          tempSecret[tempSecret.indexOf(color)] = null;
+        }
+      });
+
+      return { exact, colorOnly };
+    }
+
+    function submitGuess() {
+      const msg = document.getElementById("message");
+      msg.textContent = "";
+      if (current.length < 4) {
+        msg.textContent = "Veuillez sélectionner 4 couleurs.";
+        return;
+      }
+      if (history.some(entry => JSON.stringify(entry.guess) === JSON.stringify(current))) {
+        msg.textContent = "Vous avez déjà tenté cette combinaison.";
+        return;
+      }
+
+      const fb = feedback(current);
+      history.push({ guess: [...current], feedback: fb });
+      renderBoard();
+      current = [];
+      renderCurrentGuess();
+      if (fb.exact === 4) msg.textContent = "Congratulation my little Cherry ! You're the best !";
+    }
+
+    function renderBoard() {
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      history.forEach(entry => {
+        const row = document.createElement("div");
+        row.className = "row";
+        const guess = document.createElement("div");
+        guess.className = "guess";
+        entry.guess.forEach(color => {
+          const el = document.createElement("div");
+          el.className = "color";
+          el.style.background = color;
+          guess.appendChild(el);
+        });
+
+        const fb = document.createElement("div");
+        fb.className = "feedback";
+        for (let i = 0; i < entry.feedback.exact; i++) {
+          const dot = document.createElement("div");
+          dot.className = "feedback-dot";
+          dot.style.background = "green";
+          fb.appendChild(dot);
+        }
+        for (let i = 0; i < entry.feedback.colorOnly; i++) {
+          const dot = document.createElement("div");
+          dot.className = "feedback-dot";
+          dot.style.background = "gold";
+          fb.appendChild(dot);
+        }
+
+        row.appendChild(guess);
+        row.appendChild(fb);
+        board.appendChild(row);
+      });
+    }
+
+    generateSecret();
+    renderColorOptions();
+    renderCurrentGuess();
+  </script>
+</body>
+</html>
